@@ -1,0 +1,46 @@
+name: API Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  # schedule:
+  #   - cron: '0 9 * * 1-5'  # Run at 9 AM UTC on weekdays
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run API tests
+      run: |
+        behave --junit --junit-directory reports/
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: reports/
+    
+    - name: Publish test results
+      uses: EnricoMi/publish-unit-test-result-action@v4
+      if: always()
+      with:
+        files: reports/*.xml
